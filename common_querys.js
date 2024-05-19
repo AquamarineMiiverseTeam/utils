@@ -22,6 +22,8 @@ const common_querys = {
                 "(SELECT COUNT(empathies.post_id) FROM empathies WHERE empathies.post_id=posts.id) as empathy_count"
             )
         )
+        .where({ moderated: 0 })
+        .orWhereNull("moderated")
         .groupBy("posts.id")
         .innerJoin("account.accounts", "accounts.id", "=", "posts.account_id")
         .innerJoin("communities", "communities.id", "=", "posts.community_id")
