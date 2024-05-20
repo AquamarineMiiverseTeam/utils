@@ -46,7 +46,7 @@ const common_querys = {
             .env_db("account.accounts")
             .select(
                 db_con.env_db.raw(
-                    "(SELECT COUNT(*) FROM posts WHERE posts.account_id = accounts.id) as post_count"
+                    "(SELECT COUNT(*) FROM posts WHERE posts.account_id = accounts.id AND posts.moderated = 0) as post_count"
                 ),
                 db_con.env_db.raw(
                     "(SELECT COUNT(*) FROM empathies WHERE empathies.account_id = accounts.id) as empathy_count"
