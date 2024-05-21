@@ -28,6 +28,29 @@ const common_querys = {
         .leftJoin("empathies", "posts.id", "=", "empathies.post_id")
         .where({ moderated: 0 }),
 
+    sub_communities_query: function (parent_community_id) {
+        return db_con
+            .env_db("communities")
+            .select(
+                "communities.*",
+                db_con.env_db.raw(
+                    "(SELECT name FROM communities WHERE communities.id = ?) AS parent_community_name",
+                    [parent_community_id]
+                ),
+                db_con.env_db.raw(
+                    "COUNT(favorites.community_id) AS favorite_count"
+                )
+            )
+            .where({ parent_community_id: parent_community_id })
+            .groupBy("communities.id")
+            .leftJoin(
+                "favorites",
+                "communities.id",
+                "=",
+                "favorites.community_id"
+            );
+    },
+
     is_yeahed: function (account_id) {
         return db_con.env_db.raw(
             `EXISTS ( 
