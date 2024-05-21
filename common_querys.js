@@ -41,6 +41,19 @@ const common_querys = {
         );
     },
 
+    is_favorited: function (account_id) {
+        return db_con.env_db.raw(
+            `EXISTS ( 
+                    SELECT 1
+                    FROM favorites
+                    WHERE favorites.account_id=?
+                    AND favorites.community_id=communities.id
+                ) AS is_favorited
+            `,
+            [account_id]
+        );
+    },
+
     get_user_stats: function (account_id) {
         return db_con
             .env_db("account.accounts")
