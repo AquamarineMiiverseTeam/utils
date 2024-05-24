@@ -1,4 +1,5 @@
 const db_con = require("./database_con");
+const moment = require("moment");
 
 const common_querys = {
     posts_query: db_con
@@ -28,6 +29,29 @@ const common_querys = {
         .leftJoin("empathies", "posts.id", "=", "empathies.post_id")
         .where({ moderated: 0 }),
 
+    sub_communities_query: function (parent_community_id) {
+        return db_con
+            .env_db("communities")
+            .select(
+                "communities.*",
+                db_con.env_db.raw(
+                    "(SELECT name FROM communities WHERE communities.id = ?) AS parent_community_name",
+                    [parent_community_id]
+                ),
+                db_con.env_db.raw(
+                    "COUNT(favorites.community_id) AS favorite_count"
+                )
+            )
+            .where({ parent_community_id: parent_community_id })
+            .groupBy("communities.id")
+            .leftJoin(
+                "favorites",
+                "communities.id",
+                "=",
+                "favorites.community_id"
+            );
+    },
+
     is_yeahed: function (account_id) {
         return db_con.env_db.raw(
             `EXISTS ( 
@@ -39,6 +63,33 @@ const common_querys = {
             `,
             [account_id]
         );
+    },
+
+    is_favorited: function (account_id) {
+        return db_con.env_db.raw(
+            `EXISTS ( 
+                    SELECT 1
+                    FROM favorites
+                    WHERE favorites.account_id=?
+                    AND favorites.community_id=communities.id
+                ) AS is_favorited
+            `,
+            [account_id]
+        );
+    },
+
+    favorite_count: db_con.env_db.raw(
+        "(SELECT COUNT(*) FROM favorites WHERE favorites.community_id = communities.id) as favorite_count"
+    ),
+
+    popular_community_order_by: function () {
+        this.count("*")
+            .from("posts")
+            .whereRaw("posts.community_id = communities.id")
+            .whereBetween("create_time", [
+                moment().subtract(5, "days").format("YYYY-MM-DD HH:mm:ss"),
+                moment().add(1, "day").format("YYYY-MM-DD HH:mm:ss"),
+            ]);
     },
 
     get_user_stats: function (account_id) {
