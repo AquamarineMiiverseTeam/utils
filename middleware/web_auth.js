@@ -23,6 +23,28 @@ async function auth(req, res, next) {
         return next();
     }
 
+    const current_ban = await db_con
+        .account_db("bans")
+        .where({
+            account_id: user_data.data.account_id,
+            lifted: 0,
+        })
+        .first();
+
+    if (current_ban) {
+        //If there is a ban, make sure to check if it's lifted yet.
+        if (moment(current_ban.time_until_lift).isBefore(moment())) {
+            await db_con.account_db("bans").update({ lifted: 1 }).where({
+                account_id: user_data.data.account_id,
+            });
+        } else {
+            //If it's not, then send a simple ban message.
+            //TODO: make ban ejs
+            res.send("Sorry, you're banned!");
+            return;
+        }
+    }
+
     const account_data = await db_con
         .account_db("accounts")
         .where({ id: user_data.data.account_id })
