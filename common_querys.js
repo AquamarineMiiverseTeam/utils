@@ -2,6 +2,15 @@ const db_con = require("./database_con");
 const moment = require("moment");
 
 const common_querys = {
+    account_profile_images: [
+        "accounts.cdn_profile_normal_image_url",
+        "accounts.cdn_profile_happy_image_url",
+        "accounts.cdn_profile_like_image_url",
+        "accounts.cdn_profile_frustrated_image_url",
+        "accounts.cdn_profile_puzzled_image_url",
+        "accounts.cdn_profile_surprised_image_url",
+    ],
+
     posts_query: db_con
         .env_db("posts")
         .select(
@@ -21,12 +30,13 @@ const common_querys = {
             "communities.id as community_id",
             db_con.env_db.raw(
                 "(SELECT COUNT(empathies.post_id) FROM empathies WHERE empathies.post_id=posts.id) as empathy_count"
+            ),
+            db_con.env_db.raw(
+                "(SELECT COUNT(replies.post_id) FROM replies WHERE replies.post_id=posts.id) as reply_count"
             )
         )
-        .groupBy("posts.id")
         .innerJoin("account.accounts", "accounts.id", "=", "posts.account_id")
         .innerJoin("communities", "communities.id", "=", "posts.community_id")
-        .leftJoin("empathies", "posts.id", "=", "empathies.post_id")
         .where({ moderated: 0 }),
 
     sub_communities_query: function (parent_community_id) {
@@ -38,18 +48,11 @@ const common_querys = {
                     "(SELECT name FROM communities WHERE communities.id = ?) AS parent_community_name",
                     [parent_community_id]
                 ),
-                db_con.env_db.raw(
-                    "COUNT(favorites.community_id) AS favorite_count"
-                )
+                db_con.env_db.raw("COUNT(favorites.community_id) AS favorite_count")
             )
             .where({ parent_community_id: parent_community_id })
             .groupBy("communities.id")
-            .leftJoin(
-                "favorites",
-                "communities.id",
-                "=",
-                "favorites.community_id"
-            );
+            .leftJoin("favorites", "communities.id", "=", "favorites.community_id");
     },
 
     is_yeahed: function (account_id) {
@@ -59,6 +62,19 @@ const common_querys = {
                     FROM empathies
                     WHERE empathies.account_id=?
                     AND empathies.post_id=posts.id
+                ) AS empathied_by_user
+            `,
+            [account_id]
+        );
+    },
+
+    is_reply_yeahed: function (account_id) {
+        return db_con.env_db.raw(
+            `EXISTS ( 
+                    SELECT 1
+                    FROM empathies
+                    WHERE empathies.account_id=?
+                    AND empathies.reply_id=replies.id
                 ) AS empathied_by_user
             `,
             [account_id]
