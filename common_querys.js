@@ -39,6 +39,14 @@ const common_querys = {
         .innerJoin("communities", "communities.id", "=", "posts.community_id")
         .where({ moderated: 0 }),
 
+    replies_query: db_con.env_db("replies")
+        .where({ moderated: 0 })
+        .select("replies.*", "accounts.username", "accounts.mii_name")
+        .select(db_con.env_db.raw(
+            "(SELECT COUNT(empathies.reply_id) FROM empathies WHERE empathies.reply_id=replies.id) as empathy_count"
+        ))
+        .innerJoin("account.accounts", "accounts.id", "=", "replies.account_id"),
+
     sub_communities_query: function (parent_community_id) {
         return db_con
             .env_db("communities")
