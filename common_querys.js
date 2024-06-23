@@ -141,6 +141,12 @@ const common_querys = {
             })
             .first();
     },
+
+    get_user_favorites: db_con.env_db("communities")
+        .select("communities.*")
+        .leftJoin("favorites", "favorites.community_id", "=", "communities.id")
+        .orderBy("favorites.create_time", "desc")
+        .limit(10)
 };
 
 module.exports = common_querys;
